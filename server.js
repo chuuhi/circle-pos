@@ -11,6 +11,7 @@ app.post("/orders", (req, res) => {
     const newOrder = {
         id: nextOrderId++,
         items: [],
+        changes: [],
         sentToKitchen: false,
         createdAt: new Date(),
     };
@@ -65,7 +66,16 @@ app.put("/orders/:orderId/items/:itemIndex", (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).send("Item name required");
 
+    const oldName = order.items[index].name = name;
     order.items[index].name = name;
+
+    order.changes.push({
+        type: "ITEM_EDITED",
+        itemIndex: index,
+        from: oldName,
+        to: name,
+        changedAt: new Date(),
+    });
 
     res.json(order);
 });
