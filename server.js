@@ -30,16 +30,49 @@ app.post("/orders/:id/items", (req, res) => {
     res.json(order);
 });
 
+// SEND ORDER TO KITCHEN
+app.post("/orders/:id/send", (req, res) => {
+    const order = orders.find(o => o.id === Number(req.params.id));
+    if (!order) return res.status(404).send("Order not found");
+
+    order.sentToKitchen = true;
+    order.sentAt = new Date();
+
+    res.json(order);
+});
+
 // VIEW ALL ORDERS
 app.get("/orders", (req, res) => {
     res.json(orders);
 });
 
+// KITCHEN VIEW
+app.get("/kitchen/orders", (req, res) => {
+    const kitchenOrders = orders.filter(o => o.sentToKitchen);
+    res.json(kitchenOrders);
+  });
+
+// EDIT ITEM IN ORDER
+app.put("/orders/:orderId/items/:itemIndex", (req, res) => {
+    const order = orders.find(o => o.id === Number(req.params.orderId));
+    if (!order) return res.status(404).send("Order not found");
+
+    const index = Number(req.params.itemIndex);
+    if (index < 0 || index >= order.items.length) {
+        return res.status(400).send("Invalid item index");
+    }
+
+    const { name } = req.body;
+    if (!name) return res.status(400).send("Item name required");
+
+    order.items[index].name = name;
+
+    res.json(order);
+});
+
 app.get("/", (req, res) => {
     res.send("POS API running");
 });
-
-
 
 app.listen(3000, () => {
     console.log("Server running on port 3000");
