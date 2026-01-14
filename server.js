@@ -26,7 +26,10 @@ app.post("/orders/:id/items", (req, res) => {
     if (!order) return res.status(404).send("Order not found");
 
     const { name } = req.body;
-    order.items.push({ name });
+    order.items.push({
+        name,
+        status: "pending", // pending | cooking | done
+      });
 
     res.json(order);
 });
@@ -113,6 +116,35 @@ app.get("/kitchen/orders/:id/changes", (req, res) => {
 
     res.json(order.changes);
 });
+
+// UPDATE ITEM STATUS (KITCHEN)
+app.put("/orders/:orderId/items/:itemIndex/status", (req, res) => {
+    const order = orders.find(o => o.id === Number(req.params.orderId));
+    if (!order) return res.status(404).send("Order not found");
+  
+    const index = Number(req.params.itemIndex);
+    if (index < 0 || index >= order.items.length) {
+      return res.status(400).send("Invalid item index");
+    }
+  
+    const { status } = req.body;
+    if (!["pending", "cooking", "done"].includes(status)) {
+      return res.status(400).send("Invalid status");
+    }
+  
+    const oldStatus = order.items[index].status;
+    order.items[index].status = status;
+  
+    order.changes.push({
+      type: "ITEM_STATUS_CHANGED",
+      itemIndex: index,
+      from: oldStatus,
+      to: status,
+      changedAt: new Date(),
+    });
+  
+    res.json(order);
+  });  
 
 app.get("/", (req, res) => {
     res.send("POS API running");
