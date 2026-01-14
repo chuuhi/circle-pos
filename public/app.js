@@ -68,5 +68,17 @@ async function editItem(index, oldName) {
 
     const order = await res.json();
     renderItems(order.items);
-    }
+}
 
+async function voidItem(index) {
+    const confirmVoid = confirm("Void this item?");
+    if (!confirmVoid) return;
+    
+    const res = await fetch(`/orders/${currentOrderId}/items/${index}`, {
+        method: "DELETE",
+    });
+    
+    const order = await res.json();
+    renderItems(order.items);
+}
+    
