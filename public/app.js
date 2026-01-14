@@ -47,14 +47,20 @@ function renderItems(items) {
       const editBtn = document.createElement("button");
       editBtn.textContent = "Edit";
       editBtn.style.marginLeft = "10px";
-  
       editBtn.onclick = () => editItem(index, item.name);
+  
+      const voidBtn = document.createElement("button");
+      voidBtn.textContent = "Void";
+      voidBtn.style.marginLeft = "5px";
+      voidBtn.onclick = () => voidItem(index);
   
       li.appendChild(text);
       li.appendChild(editBtn);
+      li.appendChild(voidBtn);
       itemsList.appendChild(li);
     });
   }
+  
 
 async function editItem(index, oldName) {
     const newName = prompt("Edit item name:", oldName);
