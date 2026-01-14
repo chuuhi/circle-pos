@@ -80,6 +80,40 @@ app.put("/orders/:orderId/items/:itemIndex", (req, res) => {
     res.json(order);
 });
 
+// VOID (DELETE) ITEM FROM ORDER
+app.delete("/orders/:orderId/items/:itemIndex", (req, res) => {
+    const order = orders.find(o => o.id === Number(req.params.orderId));
+    if (!order) return res.status(404).send("Order not found");
+  
+    const index = Number(req.params.itemIndex);
+    if (index < 0 || index >= order.items.length) {
+      return res.status(400).send("Invalid item index");
+    }
+  
+    const removedItem = order.items[index];
+  
+    // remove item
+    order.items.splice(index, 1);
+  
+    // log the change
+    order.changes.push({
+      type: "ITEM_VOIDED",
+      itemIndex: index,
+      itemName: removedItem.name,
+      changedAt: new Date(),
+    });
+  
+    res.json(order);
+  });  
+
+// VIEW CHANGE LOG FOR A SINGLE ORDER (KITCHEN)
+app.get("/kitchen/orders/:id/changes", (req, res) => {
+    const order = orders.find(o => o.id === Number(req.params.id));
+    if (!order) return res.status(404).send("Order not found");
+
+    res.json(order.changes);
+});
+
 app.get("/", (req, res) => {
     res.send("POS API running");
 });
