@@ -1,5 +1,6 @@
 const express = require("express");
 const app = express();
+const db = require("./db");
 
 app.use(express.json());
 app.use(express.static("public"));
@@ -7,19 +8,18 @@ app.use(express.static("public"));
 let orders = [];
 let nextOrderId = 1;
 
-// CREATE ORDER
-app.post("/orders", (req, res) => {
-    const newOrder = {
-        id: nextOrderId++,
-        items: [],
-        changes: [],
-        sentToKitchen: false,
-        createdAt: new Date(),
-        lastKitchenViewedAt: null,
-    };
+// CREATE ORDER (Postgres)
+app.post("/orders", async (req, res) => {
+  try {
+    const result = await db.query(
+      "INSERT INTO orders DEFAULT VALUES RETURNING *"
+    );
 
-    orders.push(newOrder);
-    res.status(201).json(newOrder);
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Database error");
+  }
 });
 
 // ADD ITEM TO ORDER
