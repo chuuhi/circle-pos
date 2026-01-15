@@ -22,19 +22,36 @@ app.post("/orders", async (req, res) => {
   }
 });
 
-// ADD ITEM TO ORDER
-app.post("/orders/:id/items", (req, res) => {
-    const order = orders.find(o => o.id === Number(req.params.id));
-    if (!order) return res.status(404).send("Order not found");
-
+// ADD ITEM TO ORDER (Postgres)
+app.post("/orders/:id/items", async (req, res) => {
     const { name } = req.body;
-    order.items.push({
-        name,
-        status: "pending", // pending | cooking | done
-      });
-
-    res.json(order);
-});
+    if (!name) return res.status(400).send("Item name required");
+  
+    try {
+      // verify order exists
+      const orderResult = await db.query(
+        "SELECT id FROM orders WHERE id = $1",
+        [req.params.id]
+      );
+  
+      if (orderResult.rows.length === 0) {
+        return res.status(404).send("Order not found");
+      }
+  
+      // insert item
+      const itemResult = await db.query(
+        `INSERT INTO items (order_id, name, status)
+         VALUES ($1, $2, 'pending')
+         RETURNING *`,
+        [req.params.id, name]
+      );
+  
+      res.status(201).json(itemResult.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Database error");
+    }
+  });  
 
 // SEND ORDER TO KITCHEN
 app.post("/orders/:id/send", (req, res) => {
