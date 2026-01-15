@@ -15,6 +15,7 @@ app.post("/orders", (req, res) => {
         changes: [],
         sentToKitchen: false,
         createdAt: new Date(),
+        lastKitchenViewedAt: null,
     };
 
     orders.push(newOrder);
@@ -53,10 +54,26 @@ app.get("/orders", (req, res) => {
 
 // KITCHEN VIEW
 app.get("/kitchen/orders", (req, res) => {
-    const kitchenOrders = orders.filter(o => o.sentToKitchen);
+    const kitchenOrders = orders
+      .filter(o => o.sentToKitchen)
+      .map(order => ({
+        id: order.id,
+        items: order.items,
+        hasUnseenUpdates: hasUnseenKitchenUpdates(order),
+      }));
+  
     res.json(kitchenOrders);
-  });
+  });  
 
+// KITCHEN VIEWS UPDATES
+app.post("/kitchen/orders/:id/view", (req, res) => {
+    const order = orders.find(o => o.id === Number(req.params.id));
+    if (!order) return res.status(404).send("Order not found");
+  
+    order.lastKitchenViewedAt = new Date();
+    res.json({ message: "Kitchen updates marked as seen" });
+  });
+  
 // EDIT ITEM IN ORDER
 app.put("/orders/:orderId/items/:itemIndex", (req, res) => {
     const order = orders.find(o => o.id === Number(req.params.orderId));
@@ -70,7 +87,7 @@ app.put("/orders/:orderId/items/:itemIndex", (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).send("Item name required");
 
-    const oldName = order.items[index].name = name;
+    const oldName = order.items[index].name;
     order.items[index].name = name;
 
     order.changes.push({
@@ -154,3 +171,15 @@ app.get("/", (req, res) => {
 app.listen(3000, () => {
     console.log("Server running on port 3000");
 });
+
+// function
+function hasUnseenKitchenUpdates(order) {
+    if (!order.lastKitchenViewedAt) {
+      return order.changes.length > 0;
+    }
+  
+    return order.changes.some(
+      change => new Date(change.changedAt) > new Date(order.lastKitchenViewedAt)
+    );
+  }
+  
