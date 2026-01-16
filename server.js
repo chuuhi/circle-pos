@@ -157,32 +157,43 @@ app.put("/orders/:orderId/items/:itemIndex", async (req, res) => {
     }
   });  
 
-// VOID (DELETE) ITEM FROM ORDER
-app.delete("/orders/:orderId/items/:itemIndex", (req, res) => {
-    const order = orders.find(o => o.id === Number(req.params.orderId));
-    if (!order) return res.status(404).send("Order not found");
+// VOID (DELETE) ITEM FROM ORDER (Postgres)
+app.delete("/orders/:orderId/items/:itemIndex", async (req, res) => {
+    const { orderId, itemIndex } = req.params;
   
-    const index = Number(req.params.itemIndex);
-    if (index < 0 || index >= order.items.length) {
-      return res.status(400).send("Invalid item index");
+    try {
+      // get items for order
+      const itemsResult = await db.query(
+        `SELECT * FROM items WHERE order_id = $1 ORDER BY id`,
+        [orderId]
+      );
+  
+      if (itemsResult.rows.length === 0) {
+        return res.status(404).send("No items found for order");
+      }
+  
+      const item = itemsResult.rows[itemIndex];
+      if (!item) {
+        return res.status(400).send("Invalid item index");
+      }
+  
+      // delete item
+      await db.query(
+        `DELETE FROM items WHERE id = $1`,
+        [item.id]
+      );
+  
+      res.json({
+        message: "Item voided",
+        itemId: item.id,
+        itemName: item.name,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Database error");
     }
+  });
   
-    const removedItem = order.items[index];
-  
-    // remove item
-    order.items.splice(index, 1);
-  
-    // log the change
-    order.changes.push({
-      type: "ITEM_VOIDED",
-      itemIndex: index,
-      itemName: removedItem.name,
-      changedAt: new Date(),
-    });
-  
-    res.json(order);
-  });  
-
 // VIEW CHANGE LOG FOR A SINGLE ORDER (KITCHEN)
 app.get("/kitchen/orders/:id/changes", (req, res) => {
     const order = orders.find(o => o.id === Number(req.params.id));
