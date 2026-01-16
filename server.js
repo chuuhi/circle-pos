@@ -143,33 +143,39 @@ app.post("/kitchen/orders/:id/view", (req, res) => {
     res.json({ message: "Kitchen updates marked as seen" });
   });
   
-// EDIT ITEM IN ORDER (Postgres)
-app.put("/orders/:orderId/items/:itemIndex", async (req, res) => {
-    const { orderId, itemIndex } = req.params;
+// EDIT ITEM BY ITEM ID (Postgres)
+app.put("/orders/:orderId/items/:itemId", async (req, res) => {
+    const { orderId, itemId } = req.params;
     const { name } = req.body;
   
     if (!name) return res.status(400).send("Item name required");
   
     try {
-      // get items for order
-      const itemsResult = await db.query(
-        `SELECT * FROM items WHERE order_id = $1 ORDER BY id`,
-        [orderId]
+      const itemResult = await db.query(
+        `SELECT * FROM items WHERE id = $1 AND order_id = $2`,
+        [itemId, orderId]
       );
   
-      if (itemsResult.rows.length === 0) {
-        return res.status(404).send("No items found for order");
+      if (itemResult.rows.length === 0) {
+        return res.status(404).send("Item not found");
       }
   
-      const item = itemsResult.rows[itemIndex];
-      if (!item) {
-        return res.status(400).send("Invalid item index");
-      }
+      const item = itemResult.rows[0];
   
       // update item
       await db.query(
         `UPDATE items SET name = $1 WHERE id = $2`,
         [name, item.id]
+      );
+  
+      // log change
+      await db.query(
+        `
+        INSERT INTO order_changes
+        (order_id, item_id, change_type, from_value, to_value)
+        VALUES ($1, $2, $3, $4, $5)
+        `,
+        [orderId, item.id, "ITEM_EDITED", item.name, name]
       );
   
       res.json({
@@ -184,31 +190,34 @@ app.put("/orders/:orderId/items/:itemIndex", async (req, res) => {
     }
   });  
 
-// VOID (DELETE) ITEM FROM ORDER (Postgres)
-app.delete("/orders/:orderId/items/:itemIndex", async (req, res) => {
-    const { orderId, itemIndex } = req.params;
+// DELETE ITEM BY ITEM ID (Postgres)
+app.delete("/orders/:orderId/items/:itemId", async (req, res) => {
+    const { orderId, itemId } = req.params;
   
     try {
-      // get items for order
-      const itemsResult = await db.query(
-        `SELECT * FROM items WHERE order_id = $1 ORDER BY id`,
-        [orderId]
+      const itemResult = await db.query(
+        `SELECT * FROM items WHERE id = $1 AND order_id = $2`,
+        [itemId, orderId]
       );
   
-      if (itemsResult.rows.length === 0) {
-        return res.status(404).send("No items found for order");
+      if (itemResult.rows.length === 0) {
+        return res.status(404).send("Item not found");
       }
   
-      const item = itemsResult.rows[itemIndex];
-      if (!item) {
-        return res.status(400).send("Invalid item index");
-      }
+      const item = itemResult.rows[0];
+  
+      // log change before deletion
+      await db.query(
+        `
+        INSERT INTO order_changes
+        (order_id, item_id, change_type, from_value)
+        VALUES ($1, $2, $3, $4)
+        `,
+        [orderId, item.id, "ITEM_VOIDED", item.name]
+      );
   
       // delete item
-      await db.query(
-        `DELETE FROM items WHERE id = $1`,
-        [item.id]
-      );
+      await db.query(`DELETE FROM items WHERE id = $1`, [item.id]);
   
       res.json({
         message: "Item voided",
@@ -219,7 +228,7 @@ app.delete("/orders/:orderId/items/:itemIndex", async (req, res) => {
       console.error(err);
       res.status(500).send("Database error");
     }
-  });
+  });  
   
 // VIEW CHANGE LOG FOR A SINGLE ORDER (KITCHEN)
 app.get("/kitchen/orders/:id/changes", (req, res) => {
