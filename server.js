@@ -53,16 +53,43 @@ app.post("/orders/:id/items", async (req, res) => {
     }
   });  
 
-// SEND ORDER TO KITCHEN
-app.post("/orders/:id/send", (req, res) => {
-    const order = orders.find(o => o.id === Number(req.params.id));
-    if (!order) return res.status(404).send("Order not found");
-
-    order.sentToKitchen = true;
-    order.sentAt = new Date();
-
-    res.json(order);
-});
+// SEND ORDER TO KITCHEN (Postgres)
+app.post("/orders/:id/send", async (req, res) => {
+    const { id } = req.params;
+  
+    try {
+      const orderResult = await db.query(
+        `SELECT * FROM orders WHERE id = $1`,
+        [id]
+      );
+  
+      if (orderResult.rows.length === 0) {
+        return res.status(404).send("Order not found");
+      }
+  
+      const order = orderResult.rows[0];
+  
+      if (order.sent_to_kitchen) {
+        return res.status(400).send("Order already sent to kitchen");
+      }
+  
+      const updatedOrder = await db.query(
+        `
+        UPDATE orders
+        SET sent_to_kitchen = true,
+            sent_at = NOW()
+        WHERE id = $1
+        RETURNING *
+        `,
+        [id]
+      );
+  
+      res.json(updatedOrder.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Database error");
+    }
+  });  
 
 // VIEW ALL ORDERS (Postgres)
 app.get("/orders", async (req, res) => {
