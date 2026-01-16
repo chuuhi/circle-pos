@@ -3,6 +3,7 @@ let currentOrderId = null;
 const orderInfo = document.getElementById("orderInfo");
 const itemsList = document.getElementById("itemsList");
 
+// CREATE ORDER
 document.getElementById("createOrderBtn").onclick = async () => {
   const res = await fetch("/orders", { method: "POST" });
   const order = await res.json();
@@ -12,22 +13,26 @@ document.getElementById("createOrderBtn").onclick = async () => {
   itemsList.innerHTML = "";
 };
 
+// ADD ITEM
 document.getElementById("addItemBtn").onclick = async () => {
   if (!currentOrderId) return alert("Create an order first");
 
   const name = document.getElementById("itemName").value;
   if (!name) return;
 
-  const res = await fetch(`/orders/${currentOrderId}/items`, {
+  await fetch(`/orders/${currentOrderId}/items`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name }),
   });
 
-  const order = await res.json();
+  // Fetch updated order from backend
+  const orderRes = await fetch(`/orders/${currentOrderId}`);
+  const order = await orderRes.json();
   renderItems(order.items);
 };
-  
+
+// SEND TO KITCHEN
 document.getElementById("sendKitchenBtn").onclick = async () => {
   if (!currentOrderId) return;
 
@@ -35,56 +40,5 @@ document.getElementById("sendKitchenBtn").onclick = async () => {
   alert("Order sent to kitchen");
 };
 
+// RENDER ITEMS
 function renderItems(items) {
-    itemsList.innerHTML = "";
-  
-    items.forEach((item, index) => {
-      const li = document.createElement("li");
-  
-      const text = document.createElement("span");
-      text.textContent = `${item.name} (${item.status || "pending"})`;
-  
-      const editBtn = document.createElement("button");
-      editBtn.textContent = "Edit";
-      editBtn.style.marginLeft = "10px";
-      editBtn.onclick = () => editItem(index, item.name);
-  
-      const voidBtn = document.createElement("button");
-      voidBtn.textContent = "Void";
-      voidBtn.style.marginLeft = "5px";
-      voidBtn.onclick = () => voidItem(index);
-  
-      li.appendChild(text);
-      li.appendChild(editBtn);
-      li.appendChild(voidBtn);
-      itemsList.appendChild(li);
-    });
-  }
-  
-
-async function editItem(index, oldName) {
-    const newName = prompt("Edit item name:", oldName);
-    if (!newName || newName === oldName) return;
-
-    const res = await fetch(`/orders/${currentOrderId}/items/${index}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName }),
-    });
-
-    const order = await res.json();
-    renderItems(order.items);
-}
-
-async function voidItem(index) {
-    const confirmVoid = confirm("Void this item?");
-    if (!confirmVoid) return;
-    
-    const res = await fetch(`/orders/${currentOrderId}/items/${index}`, {
-        method: "DELETE",
-    });
-    
-    const order = await res.json();
-    renderItems(order.items);
-}
-    
