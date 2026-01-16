@@ -64,10 +64,35 @@ app.post("/orders/:id/send", (req, res) => {
     res.json(order);
 });
 
-// VIEW ALL ORDERS
-app.get("/orders", (req, res) => {
-    res.json(orders);
-});
+// VIEW ALL ORDERS (Postgres)
+app.get("/orders", async (req, res) => {
+    try {
+      const ordersResult = await db.query(`
+        SELECT * FROM orders
+        ORDER BY created_at DESC
+      `);
+  
+      const itemsResult = await db.query(`
+        SELECT * FROM items
+        ORDER BY id
+      `);
+  
+      const orders = ordersResult.rows.map(order => ({
+        id: order.id,
+        sentToKitchen: order.sent_to_kitchen,
+        createdAt: order.created_at,
+        lastKitchenViewedAt: order.last_kitchen_viewed_at,
+        items: itemsResult.rows.filter(
+          item => item.order_id === order.id
+        ),
+      }));
+  
+      res.json(orders);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Database error");
+    }
+  });  
 
 // KITCHEN VIEW
 app.get("/kitchen/orders", (req, res) => {
