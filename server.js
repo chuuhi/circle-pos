@@ -116,32 +116,46 @@ app.post("/kitchen/orders/:id/view", (req, res) => {
     res.json({ message: "Kitchen updates marked as seen" });
   });
   
-// EDIT ITEM IN ORDER
-app.put("/orders/:orderId/items/:itemIndex", (req, res) => {
-    const order = orders.find(o => o.id === Number(req.params.orderId));
-    if (!order) return res.status(404).send("Order not found");
-
-    const index = Number(req.params.itemIndex);
-    if (index < 0 || index >= order.items.length) {
-        return res.status(400).send("Invalid item index");
-    }
-
+// EDIT ITEM IN ORDER (Postgres)
+app.put("/orders/:orderId/items/:itemIndex", async (req, res) => {
+    const { orderId, itemIndex } = req.params;
     const { name } = req.body;
+  
     if (!name) return res.status(400).send("Item name required");
-
-    const oldName = order.items[index].name;
-    order.items[index].name = name;
-
-    order.changes.push({
-        type: "ITEM_EDITED",
-        itemIndex: index,
-        from: oldName,
+  
+    try {
+      // get items for order
+      const itemsResult = await db.query(
+        `SELECT * FROM items WHERE order_id = $1 ORDER BY id`,
+        [orderId]
+      );
+  
+      if (itemsResult.rows.length === 0) {
+        return res.status(404).send("No items found for order");
+      }
+  
+      const item = itemsResult.rows[itemIndex];
+      if (!item) {
+        return res.status(400).send("Invalid item index");
+      }
+  
+      // update item
+      await db.query(
+        `UPDATE items SET name = $1 WHERE id = $2`,
+        [name, item.id]
+      );
+  
+      res.json({
+        message: "Item updated",
+        itemId: item.id,
+        from: item.name,
         to: name,
-        changedAt: new Date(),
-    });
-
-    res.json(order);
-});
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Database error");
+    }
+  });  
 
 // VOID (DELETE) ITEM FROM ORDER
 app.delete("/orders/:orderId/items/:itemIndex", (req, res) => {
