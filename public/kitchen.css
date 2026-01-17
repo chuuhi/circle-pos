@@ -1,0 +1,34 @@
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background-color: #fafafa;
+  }
+  
+  .order {
+    border: 2px solid #ccc;
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    background-color: white;
+  }
+  
+  .order.updated {
+    border-color: #e53935;
+    background-color: #fff5f5;
+  }
+  
+  .badge {
+    background-color: #e53935;
+    color: white;
+    font-size: 12px;
+    padding: 3px 6px;
+    margin-left: 8px;
+    border-radius: 4px;
+  }
+  
+  button {
+    margin-top: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+  
