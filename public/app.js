@@ -34,11 +34,13 @@ document.getElementById("addItemBtn").onclick = async () => {
 
 // SEND TO KITCHEN
 document.getElementById("sendKitchenBtn").onclick = async () => {
-  if (!currentOrderId) return;
-
-  await fetch(`/orders/${currentOrderId}/send`, { method: "POST" });
-  alert("Order sent to kitchen");
-};
+    if (!currentOrderId) return;
+  
+    await fetch(`/orders/${currentOrderId}/send`, { method: "POST" });
+  
+    orderInfo.textContent = `Order #${currentOrderId} sent to kitchen`;
+  };
+  
 
 // RENDER ITEMS
 function renderItems(items) {
