@@ -1,62 +1,93 @@
 const ordersDiv = document.getElementById("orders");
 
 async function loadKitchenOrders() {
-  try {
-    const res = await fetch("/kitchen/orders");
-    const orders = await res.json();
+  const res = await fetch("/kitchen/orders");
+  const orders = await res.json();
 
-    ordersDiv.innerHTML = "";
+  ordersDiv.innerHTML = "";
 
-    if (orders.length === 0) {
-      ordersDiv.innerHTML = "<p>No orders in kitchen.</p>";
-      return;
+  if (orders.length === 0) {
+    ordersDiv.innerHTML = "<p>No orders in kitchen.</p>";
+    return;
+  }
+
+  for (const order of orders) {
+    const div = document.createElement("div");
+    div.className = "order";
+
+    if (order.hasUnseenUpdates) {
+      div.classList.add("updated");
     }
 
-    orders.forEach(order => {
-      const div = document.createElement("div");
-      div.className = "order";
+    const title = document.createElement("h3");
+    title.textContent = `Order #${order.id}`;
 
-      if (order.hasUnseenUpdates) {
-        div.classList.add("updated");
-      }
+    if (order.hasUnseenUpdates) {
+      const badge = document.createElement("span");
+      badge.textContent = "UPDATED";
+      badge.className = "badge";
+      title.appendChild(badge);
+    }
 
-      const title = document.createElement("h3");
-      title.textContent = `Order #${order.id}`;
+    div.appendChild(title);
 
-      if (order.hasUnseenUpdates) {
-        const badge = document.createElement("span");
-        badge.textContent = "UPDATED";
-        badge.className = "badge";
-        title.appendChild(badge);
-      }
+    // Items list
+    const ul = document.createElement("ul");
+    order.items.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = `${item.name} (${item.status})`;
+      ul.appendChild(li);
+    });
+    div.appendChild(ul);
 
-      div.appendChild(title);
+    // Change log
+    const changes = await loadOrderChanges(order.id);
+    if (changes.length > 0) {
+      const changesTitle = document.createElement("p");
+      changesTitle.textContent = "Recent changes:";
+      changesTitle.style.fontWeight = "bold";
+      div.appendChild(changesTitle);
 
-      const ul = document.createElement("ul");
-      order.items.forEach(item => {
+      const changesUl = document.createElement("ul");
+      changesUl.className = "changes";
+
+      changes.forEach(change => {
         const li = document.createElement("li");
-        li.textContent = `${item.name} (${item.status})`;
-        ul.appendChild(li);
+
+        if (change.change_type === "ITEM_EDITED") {
+          li.textContent = `✏️ Edited: ${change.from_value} → ${change.to_value}`;
+        }
+
+        if (change.change_type === "ITEM_VOIDED") {
+          li.textContent = `❌ Voided: ${change.from_value}`;
+        }
+
+        if (change.change_type === "ITEM_STATUS_CHANGED") {
+          li.textContent = `🍳 Status: ${change.from_value} → ${change.to_value}`;
+        }
+
+        changesUl.appendChild(li);
       });
 
-      div.appendChild(ul);
+      div.appendChild(changesUl);
+    }
 
-      const viewBtn = document.createElement("button");
-      viewBtn.textContent = "Mark as Viewed";
-      viewBtn.onclick = async () => {
-        await fetch(`/kitchen/orders/${order.id}/view`, {
-          method: "POST",
-        });
-        loadKitchenOrders();
-      };
+    // Mark as viewed
+    const viewBtn = document.createElement("button");
+    viewBtn.textContent = "Mark as Viewed";
+    viewBtn.onclick = async () => {
+      await fetch(`/kitchen/orders/${order.id}/view`, { method: "POST" });
+      loadKitchenOrders();
+    };
 
-      div.appendChild(viewBtn);
-      ordersDiv.appendChild(div);
-    });
-  } catch (err) {
-    console.error(err);
-    ordersDiv.innerHTML = "<p>Error loading kitchen orders.</p>";
+    div.appendChild(viewBtn);
+    ordersDiv.appendChild(div);
   }
+}
+
+async function loadOrderChanges(orderId) {
+  const res = await fetch(`/kitchen/orders/${orderId}/changes`);
+  return await res.json();
 }
 
 loadKitchenOrders();
