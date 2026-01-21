@@ -60,3 +60,11 @@ button {
 .changes li {
   margin-bottom: 4px;
 }
+
+.item-edited {
+  background-color: #fff8e1; 
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-weight: bold;
+}
+
