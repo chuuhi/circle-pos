@@ -6,7 +6,7 @@ async function loadKitchenOrders() {
 
   ordersDiv.innerHTML = "";
 
-  orders.forEach(order => {
+  for (const order of orders) {
     const div = document.createElement("div");
     div.className = "order";
 
@@ -35,6 +35,9 @@ async function loadKitchenOrders() {
 
     div.appendChild(ul);
 
+    // show old edited items
+    await loadOrderChanges(order.id, div);
+
     const viewBtn = document.createElement("button");
     viewBtn.textContent = "Mark as Viewed";
     viewBtn.onclick = async () => {
@@ -44,8 +47,5 @@ async function loadKitchenOrders() {
 
     div.appendChild(viewBtn);
     ordersDiv.appendChild(div);
-  });
+  }
 }
-
-loadKitchenOrders();
-setInterval(loadKitchenOrders, 5000);
