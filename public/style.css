@@ -1,0 +1,49 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    padding: 20px;
+  }
+  
+  #orderInfo {
+    margin-bottom: 15px;
+    font-weight: bold;
+  }
+  
+  #itemsList li {
+    margin-bottom: 8px;
+    padding: 4px;
+    list-style: none;
+    background: #fff;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  /* Highlight new edited value */
+  .item-edited {
+    background-color: #fff8e1;
+    border-left: 4px solid #fbc02d;
+    font-weight: bold;
+    padding-left: 4px;
+  }
+  
+  /* Show old value crossed out */
+  .item-voided {
+    text-decoration: line-through;
+    color: #888;
+  }
+  
+  /* Buttons */
+  button {
+    padding: 4px 8px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #f0f0f0;
+  }
+  
+  button:hover {
+    background: #e0e0e0;
+  }
+  

@@ -50,21 +50,16 @@ button {
   cursor: pointer;
 }
 
-.changes {
-  margin-top: 8px;
-  padding-left: 18px;
-  font-size: 14px;
-  color: #444;
+/* Old edited or voided items */
+.strikethrough {
+  text-decoration: line-through;
+  color: #888;
 }
 
-.changes li {
-  margin-bottom: 4px;
-}
-
+/* New edits highlighted */
 .item-edited {
-  background-color: #fff8e1; 
+  background-color: #fff8e1;
   border-radius: 4px;
   padding: 2px 4px;
   font-weight: bold;
 }
-
